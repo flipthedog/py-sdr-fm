@@ -49,3 +49,12 @@ Check out the following sources:
 6. https://pyrtlsdr.readthedocs.io/en/latest/index.html
 7. https://witestlab.poly.edu/blog/capture-and-decode-fm-radio/
 8. https://python-sounddevice.readthedocs.io/en/0.4.5/examples.html
+
+# Limitations
+This audio stream is mono only, and depending on computation speed, it might not
+be able to keep up with the audio stream.
+
+# Equipment used:
+1. Raspberry Pi Model 4B
+2. RTL2832U from https://www.rtl-sdr.com/
+3. Dipole Antenna Base with 60cm RG174

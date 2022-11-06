@@ -50,7 +50,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('-f', '--frequency', nargs='?', metavar='FREQUENCY', type=float, default=99.5e6,
     help='frequency in Hz (default: %(default)s)')
 parser.add_argument(
-    '-d', '--device', type=int_or_str,
+    '-d', '--device', type=int_or_str, default=0,
     help='output device (numeric ID or substring)')
 parser.add_argument(
     '-a', '--amplitude', type=float, default=1,
@@ -65,13 +65,13 @@ parser.add_argument(
     '-buffer', '--buffersize', type=float, default=200,
     help='Number of buffer slots for processed signal (default: %(default)s)')
 parser.add_argument(
-    '-samples', '--samplesize', type=float, default=256000 * 10,
+    '-samples', '--samplesize', type=float, default=256000,
     help='Number of samples per run (default: %(default)s)')
 args = parser.parse_args(remaining)
 
 print("Received command-line arguments: ", args)
 
-sd.default.device = 0
+sd.default.device = args.device
 
 sdr = RtlSdr()
 
@@ -107,7 +107,7 @@ def processSignal():
 
     # De-emphasis filter, H(s) = 1/(RC*s + 1), implemented as IIR via bilinear transform
     # bz, az = bilinear(1, [75e-6, 1], fs=sdr.sample_rate)
-    bz, az = bilinear(1, [75e-6, 1], fs=sdr.sample_rate)
+    bz, az = bilinear(1, [75e-6, 1], fs=device_samplerate)
     x = lfilter(bz, az, x)
 
     # decimate filter to get mono audio
