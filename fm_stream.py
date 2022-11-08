@@ -33,6 +33,7 @@ def int_or_str(text):
     except ValueError:
         return text
 
+
 parser = argparse.ArgumentParser(add_help=False)
 
 parser.add_argument(
@@ -48,7 +49,7 @@ parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
     parents=[parser])
 parser.add_argument('-f', '--frequency', nargs='?', metavar='FREQUENCY', type=float, default=99.5e6,
-    help='frequency in Hz (default: %(default)s)')
+                    help='frequency in Hz (default: %(default)s)')
 parser.add_argument(
     '-d', '--device', type=int_or_str, default=0,
     help='output device (numeric ID or substring)')
@@ -59,13 +60,13 @@ parser.add_argument(
     '-b', '--bandwidth', type=float, default=2500,
     help='bandwidth in Hz (default: %(default)s)')
 parser.add_argument(
-    '-s', '--samplerate', type=float, default=300e3,
+    '-s', '--samplerate', type=float, default=285e3,
     help='samplerate in Hz (default: %(default)s)')
 parser.add_argument(
     '-buffer', '--buffersize', type=float, default=200,
     help='Number of buffer slots for processed signal (default: %(default)s)')
 parser.add_argument(
-    '-samples', '--samplesize', type=float, default=256000,
+    '-samples', '--samplesize', type=float, default=128000,
     help='Number of samples per run (default: %(default)s)')
 args = parser.parse_args(remaining)
 
@@ -82,7 +83,11 @@ sdr.bandwidth = args.bandwidth
 # sdr.sample_rate = 1024000
 sdr.sample_rate = args.samplerate
 
-device_samplerate = sd.query_devices(args.device, 'output')['default_samplerate']
+device_samplerate = sd.query_devices(args.device, 'output')[
+                                     'default_samplerate']
+
+print("Found device with sample rate: ", device_samplerate)
+
 
 total_samples = args.samplesize
 # total_samples = 256000
@@ -97,10 +102,11 @@ buffersize = args.buffersize
 
 q = queue.Queue(maxsize=buffersize)
 
-def processSignal():
+
+def processSignal(signal):
 
     # Get latest signals from SDR
-    x = sdr.read_samples(total_samples)
+    x = signal
 
     # Demodulation
     x = np.diff(np.unwrap(np.angle(x)))
@@ -123,6 +129,9 @@ def processSignal():
 
 def callback(outdata, frames, time, status):
 
+    # Use this to see if queue is growing or diminishing
+    # print(q.qsize())
+
     assert frames == block_size
 
     if status:
@@ -137,7 +146,9 @@ def callback(outdata, frames, time, status):
     try:
 
         # pop the audio signal from the buffer
-        data = q.get_nowait()
+        signal = q.get_nowait()
+        signal = processSignal(signal)
+        data = signal.reshape(block_size, 1)
 
     except queue.Empty as e:
 
@@ -154,11 +165,6 @@ def callback(outdata, frames, time, status):
 
     outdata[:] = data
 
-# Fill beginning of queue with zeros to allow for some signal processing
-q.put(np.zeros((block_size, 1)))
-q.put(np.zeros((block_size, 1)))
-q.put(np.zeros((block_size, 1)))
-q.put(np.zeros((block_size, 1)))
 
 print("Starting audio stream")
 
@@ -169,8 +175,8 @@ with sd.OutputStream(channels=1, callback=callback, samplerate=device_samplerate
 
     while True:
 
-        signal = processSignal()
+        signal = sdr.read_samples(total_samples)
 
-        q.put(signal.reshape(block_size, 1), timeout=timeout)
+        q.put(signal, timeout=timeout)
 
 print("Thank you for listing")

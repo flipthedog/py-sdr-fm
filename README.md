@@ -52,7 +52,7 @@ Check out the following sources:
 
 # Limitations
 This audio stream is mono only, and depending on computation speed, it might not
-be able to keep up with the audio stream.
+be able to keep up with the audio stream. Mess around with the samplerate and samplesize to see how it impacts audioquality, but it might introduce buffering as the processor can't keep up with the signal!
 
 # Equipment used:
 1. Raspberry Pi Model 4B
